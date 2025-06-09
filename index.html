@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flexibler Habit Tracker</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glitter-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { Plus, Target, Calendar, Trash2, CheckCircle2 } = lucide;
+
+        const HabitTracker = () => {
+            const [habits, setHabits] = useState([]);
+            const [showAddForm, setShowAddForm] = useState(false);
+            const [newHabit, setNewHabit] = useState({
+                name: '',
+                target: '',
+                timeframe: '',
+                unit: 'Tage'
+            });
+            const [glitterEffects, setGlitterEffects] = useState([]);
+
+            // Beispiel-Daten laden
+            useEffect(() => {
+                const exampleHabits = [
+                    {
+                        id: 1,
+                        name: 'Kalt duschen',
+                        target: 60,
+                        current: 23,
+                        timeframe: 90,
+                        unit: 'Tage',
+                        startDate: new Date('2025-03-15'),
+                        completions: []
+                    },
+                    {
+                        id: 2,
+                        name: 'Buch lesen',
+                        target: 12,
+                        current: 4,
+                        timeframe: 180,
+                        unit: 'Tage',
+                        startDate: new Date('2025-01-01'),
+                        completions: []
+                    }
+                ];
+                setHabits(exampleHabits);
+            }, []);
+
+            // Glitter-Effekt generieren
+            const createGlitterExplosion = (buttonId) => {
+                const button = document.getElementById(buttonId);
+                if (!button) return;
+                
+                const rect = button.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const newGlitter = [];
+                for (let i = 0; i < 20; i++) {
+                    const angle = (i / 20) * 2 * Math.PI;
+                    const velocity = 2 + Math.random() * 3;
+                    const size = 4 + Math.random() * 6;
+                    const color = ['#FFD700', '#FF69B4', '#00CED1', '#FF6347', '#98FB98'][Math.floor(Math.random() * 5)];
+                    
+                    newGlitter.push({
+                        id: Date.now() + i,
+                        x: centerX,
+                        y: centerY,
+                        vx: Math.cos(angle) * velocity,
+                        vy: Math.sin(angle) * velocity,
+                        size: size,
+                        color: color,
+                        life: 1.0
+                    });
+                }
+                
+                setGlitterEffects(prev => [...prev, ...newGlitter]);
+                
+                // Glitter nach 2 Sekunden entfernen
+                setTimeout(() => {
+                    setGlitterEffects(prev => prev.filter(g => !newGlitter.includes(g)));
+                }, 2000);
+            };
+
+            // Glitter-Animation
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    setGlitterEffects(prev => 
+                        prev.map(glitter => ({
+                            ...glitter,
+                            x: glitter.x + glitter.vx,
+                            y: glitter.y + glitter.vy,
+                            vy: glitter.vy + 0.1, // Schwerkraft
+                            life: glitter.life - 0.02
+                        })).filter(glitter => glitter.life > 0)
+                    );
+                }, 16);
+                
+                return () => clearInterval(interval);
+            }, []);
+
+            const addHabit = () => {
+                if (!newHabit.name || !newHabit.target || !newHabit.timeframe) return;
+                
+                const habit = {
+                    id: Date.now(),
+                    name: newHabit.name,
+                    target: parseInt(newHabit.target),
+                    current: 0,
+                    timeframe: parseInt(newHabit.timeframe),
+                    unit: newHabit.unit,
+                    startDate: new Date(),
+                    completions: []
+                };
+                
+                setHabits([...habits, habit]);
+                setNewHabit({ name: '', target: '', timeframe: '', unit: 'Tage' });
+                setShowAddForm(false);
+            };
+
+            const markComplete = (habitId) => {
+                const buttonId = `complete-btn-${habitId}`;
+                createGlitterExplosion(buttonId);
+                
+                setHabits(habits.map(habit => 
+                    habit.id === habitId 
+                        ? { 
+                            ...habit, 
+                            current: habit.current + 1,
+                            completions: [...habit.completions, new Date()]
+                        }
+                        : habit
+                ));
+            };
+
+            const removeHabit = (habitId) => {
+                setHabits(habits.filter(habit => habit.id !== habitId));
+            };
+
+            const getDaysRemaining = (startDate, timeframe) => {
+                const start = new Date(startDate);
+                const end = new Date(start.getTime() + timeframe * 24 * 60 * 60 * 1000);
+                const today = new Date();
+                const remaining = Math.ceil((end - today) / (24 * 60 * 60 * 1000));
+                return Math.max(0, remaining);
+            };
+
+            const getProgressPercentage = (current, target) => {
+                return Math.min(100, (current / target) * 100);
+            };
+
+            const getStatusColor = (current, target, daysRemaining, timeframe) => {
+                const progress = current / target;
+                const timeProgress = (timeframe - daysRemaining) / timeframe;
+                
+                if (current >= target) return 'text-green-600';
+                if (progress >= timeProgress) return 'text-blue-600';
+                return 'text-orange-600';
+            };
+
+            return React.createElement('div', {
+                className: "max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen relative"
+            }, [
+                // Glitter-Effekte
+                ...glitterEffects.map(glitter => 
+                    React.createElement('div', {
+                        key: glitter.id,
+                        className: "fixed pointer-events-none z-50",
+                        style: {
+                            left: glitter.x,
+                            top: glitter.y,
+                            width: glitter.size,
+                            height: glitter.size,
+                            backgroundColor: glitter.color,
+                            borderRadius: '50%',
+                            opacity: glitter.life,
+                            transform: 'translate(-50%, -50%)',
+                            boxShadow: `0 0 ${glitter.size}px ${glitter.color}`
+                        }
+                    })
+                ),
+                
+                // Header
+                React.createElement('div', {
+                    key: 'header',
+                    className: "bg-white rounded-lg shadow-md p-6 mb-6"
+                }, [
+                    React.createElement('h1', {
+                        key: 'title',
+                        className: "text-3xl font-bold text-gray-800 mb-2"
+                    }, 'Flexibler Habit Tracker'),
+                    React.createElement('p', {
+                        key: 'subtitle',
+                        className: "text-gray-600"
+                    }, 'Verfolge deine Ziele über flexible Zeiträume - ohne täglichen Druck')
+                ]),
+
+                // Habits Grid
+                React.createElement('div', {
+                    key: 'habits-grid',
+                    className: "grid gap-6"
+                }, [
+                    // Habit Cards
+                    ...habits.map(habit => {
+                        const daysRemaining = getDaysRemaining(habit.startDate, habit.timeframe);
+                        const progressPercentage = getProgressPercentage(habit.current, habit.target);
+                        const statusColor = getStatusColor(habit.current, habit.target, daysRemaining, habit.timeframe);
+                        
+                        return React.createElement('div', {
+                            key: habit.id,
+                            className: "bg-white rounded-lg shadow-md p-6"
+                        }, [
+                            // Habit Header
+                            React.createElement('div', {
+                                key: 'header',
+                                className: "flex justify-between items-start mb-4"
+                            }, [
+                                React.createElement('div', { key: 'info' }, [
+                                    React.createElement('h3', {
+                                        key: 'name',
+                                        className: "text-xl font-semibold text-gray-800"
+                                    }, habit.name),
+                                    React.createElement('p', {
+                                        key: 'progress',
+                                        className: "text-gray-600"
+                                    }, `${habit.current} von ${habit.target} mal in ${habit.timeframe} ${habit.unit}`)
+                                ]),
+                                React.createElement('div', {
+                                    key: 'buttons',
+                                    className: "flex gap-2"
+                                }, [
+                                    React.createElement('button', {
+                                        key: 'complete',
+                                        id: `complete-btn-${habit.id}`,
+                                        onClick: () => markComplete(habit.id),
+                                        className: "flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 active:scale-95",
+                                        disabled: habit.current >= habit.target
+                                    }, [
+                                        React.createElement(CheckCircle2, { key: 'icon', size: 16 }),
+                                        'Erledigt'
+                                    ]),
+                                    React.createElement('button', {
+                                        key: 'delete',
+                                        onClick: () => removeHabit(habit.id),
+                                        className: "p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    }, React.createElement(Trash2, { size: 16 }))
+                                ])
+                            ]),
+
+                            // Progress Bar
+                            React.createElement('div', {
+                                key: 'progress-section',
+                                className: "mb-4"
+                            }, [
+                                React.createElement('div', {
+                                    key: 'progress-header',
+                                    className: "flex justify-between text-sm text-gray-600 mb-2"
+                                }, [
+                                    React.createElement('span', { key: 'label' }, 'Fortschritt'),
+                                    React.createElement('span', { key: 'percentage' }, `${Math.round(progressPercentage)}%`)
+                                ]),
+                                React.createElement('div', {
+                                    key: 'progress-bar-bg',
+                                    className: "w-full bg-gray-200 rounded-full h-3"
+                                }, React.createElement('div', {
+                                    className: "bg-blue-500 h-3 rounded-full transition-all duration-300",
+                                    style: { width: `${progressPercentage}%` }
+                                }))
+                            ]),
+
+                            // Status Info
+                            React.createElement('div', {
+                                key: 'status',
+                                className: "flex justify-between text-sm"
+                            }, [
+                                React.createElement('div', {
+                                    key: 'time',
+                                    className: "flex items-center gap-2"
+                                }, [
+                                    React.createElement(Calendar, { size: 16, className: "text-gray-500" }),
+                                    React.createElement('span', {
+                                        className: "text-gray-600"
+                                    }, `Noch ${daysRemaining} ${habit.unit === 'Tage' ? 'Tage' : habit.unit} verbleibend`)
+                                ]),
+                                React.createElement('div', {
+                                    key: 'target',
+                                    className: "flex items-center gap-2"
+                                }, [
+                                    React.createElement(Target, { size: 16, className: statusColor }),
+                                    React.createElement('span', {
+                                        className: statusColor + ' font-medium'
+                                    }, habit.current >= habit.target ? 'Ziel erreicht!' : `${habit.target - habit.current} noch zu schaffen`)
+                                ])
+                            ])
+                        ]);
+                    }),
+
+                    // Add Habit Form or Button
+                    showAddForm ? 
+                        React.createElement('div', {
+                            key: 'add-form',
+                            className: "bg-white rounded-lg shadow-md p-6"
+                        }, [
+                            React.createElement('h3', {
+                                key: 'form-title',
+                                className: "text-lg font-semibold mb-4"
+                            }, 'Neues Habit hinzufügen'),
+                            React.createElement('div', {
+                                key: 'form-grid',
+                                className: "grid grid-cols-1 md:grid-cols-2 gap-4"
+                            }, [
+                                React.createElement('input', {
+                                    key: 'name-input',
+                                    type: "text",
+                                    placeholder: "Habit Name (z.B. Kalt duschen)",
+                                    value: newHabit.name,
+                                    onChange: (e) => setNewHabit({...newHabit, name: e.target.value}),
+                                    className: "border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                }),
+                                React.createElement('input', {
+                                    key: 'target-input',
+                                    type: "number",
+                                    placeholder: "Ziel-Anzahl (z.B. 60)",
+                                    value: newHabit.target,
+                                    onChange: (e) => setNewHabit({...newHabit, target: e.target.value}),
+                                    className: "border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                }),
+                                React.createElement('input', {
+                                    key: 'timeframe-input',
+                                    type: "number",
+                                    placeholder: "Zeitraum (z.B. 90)",
+                                    value: newHabit.timeframe,
+                                    onChange: (e) => setNewHabit({...newHabit, timeframe: e.target.value}),
+                                    className: "border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                }),
+                                React.createElement('select', {
+                                    key: 'unit-select',
+                                    value: newHabit.unit,
+                                    onChange: (e) => setNewHabit({...newHabit, unit: e.target.value}),
+                                    className: "border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                }, [
+                                    React.createElement('option', { key: 'days', value: "Tage" }, 'Tage'),
+                                    React.createElement('option', { key: 'weeks', value: "Wochen" }, 'Wochen'),
+                                    React.createElement('option', { key: 'months', value: "Monate" }, 'Monate')
+                                ])
+                            ]),
+                            React.createElement('div', {
+                                key: 'form-buttons',
+                                className: "flex gap-3 mt-4"
+                            }, [
+                                React.createElement('button', {
+                                    key: 'add-btn',
+                                    onClick: addHabit,
+                                    className: "bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                                }, 'Hinzufügen'),
+                                React.createElement('button', {
+                                    key: 'cancel-btn',
+                                    onClick: () => setShowAddForm(false),
+                                    className: "bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                                }, 'Abbrechen')
+                            ])
+                        ]) :
+                        React.createElement('button', {
+                            key: 'add-button',
+                            onClick: () => setShowAddForm(true),
+                            className: "bg-white rounded-lg shadow-md p-6 border-2 border-dashed border-gray-300 hover:border-blue-500 transition-colors text-center"
+                        }, [
+                            React.createElement(Plus, { key: 'plus-icon', size: 24, className: "mx-auto text-gray-400 mb-2" }),
+                            React.createElement('span', {
+                                key: 'add-text',
+                                className: "text-gray-600"
+                            }, 'Neues Habit hinzufügen')
+                        ])
+                ])
+            ]);
+        };
+
+        ReactDOM.render(React.createElement(HabitTracker), document.getElementById('root'));
+    </script>
+</body>
+</html>
