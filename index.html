@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flexibler Habit Tracker</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .glitter-particle {
@@ -16,383 +12,322 @@
             z-index: 1000;
             border-radius: 50%;
         }
+        
+        /* Icon-Styles */
+        .icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="app"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-        const { Plus, Target, Calendar, Trash2, CheckCircle2 } = lucide;
+    <script>
+        // Simple Icon Components (Ersatz für Lucide)
+        const PlusIcon = () => `<svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+        const TargetIcon = () => `<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`;
+        const CalendarIcon = () => `<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`;
+        const Trash2Icon = () => `<svg class="icon" viewBox="0 0 24 24"><polyline points="3,6 5,6 21,6"></polyline><path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+        const CheckCircle2Icon = () => `<svg class="icon" viewBox="0 0 24 24"><path d="m12,2a10,10 0 0,1 10,10a10,10 0 0,1 -10,10A10,10 0 0,1 2,12A10,10 0 0,1 12,2"></path><path d="m9,12l2,2l4,-4"></path></svg>`;
 
-        const HabitTracker = () => {
-            const [habits, setHabits] = useState([]);
-            const [showAddForm, setShowAddForm] = useState(false);
-            const [newHabit, setNewHabit] = useState({
+        // App State
+        let appState = {
+            habits: [
+                {
+                    id: 1,
+                    name: 'Kalt duschen',
+                    target: 60,
+                    current: 23,
+                    timeframe: 90,
+                    unit: 'Tage',
+                    startDate: new Date('2025-03-15'),
+                    completions: []
+                },
+                {
+                    id: 2,
+                    name: 'Buch lesen',
+                    target: 12,
+                    current: 4,
+                    timeframe: 180,
+                    unit: 'Tage',
+                    startDate: new Date('2025-01-01'),
+                    completions: []
+                }
+            ],
+            showAddForm: false,
+            newHabit: {
                 name: '',
                 target: '',
                 timeframe: '',
                 unit: 'Tage'
-            });
-            const [glitterEffects, setGlitterEffects] = useState([]);
-
-            // Beispiel-Daten laden
-            useEffect(() => {
-                const exampleHabits = [
-                    {
-                        id: 1,
-                        name: 'Kalt duschen',
-                        target: 60,
-                        current: 23,
-                        timeframe: 90,
-                        unit: 'Tage',
-                        startDate: new Date('2025-03-15'),
-                        completions: []
-                    },
-                    {
-                        id: 2,
-                        name: 'Buch lesen',
-                        target: 12,
-                        current: 4,
-                        timeframe: 180,
-                        unit: 'Tage',
-                        startDate: new Date('2025-01-01'),
-                        completions: []
-                    }
-                ];
-                setHabits(exampleHabits);
-            }, []);
-
-            // Glitter-Effekt generieren
-            const createGlitterExplosion = (buttonId) => {
-                const button = document.getElementById(buttonId);
-                if (!button) return;
-                
-                const rect = button.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-                
-                const newGlitter = [];
-                for (let i = 0; i < 20; i++) {
-                    const angle = (i / 20) * 2 * Math.PI;
-                    const velocity = 2 + Math.random() * 3;
-                    const size = 4 + Math.random() * 6;
-                    const color = ['#FFD700', '#FF69B4', '#00CED1', '#FF6347', '#98FB98'][Math.floor(Math.random() * 5)];
-                    
-                    newGlitter.push({
-                        id: Date.now() + i,
-                        x: centerX,
-                        y: centerY,
-                        vx: Math.cos(angle) * velocity,
-                        vy: Math.sin(angle) * velocity,
-                        size: size,
-                        color: color,
-                        life: 1.0
-                    });
-                }
-                
-                setGlitterEffects(prev => [...prev, ...newGlitter]);
-                
-                // Glitter nach 2 Sekunden entfernen
-                setTimeout(() => {
-                    setGlitterEffects(prev => prev.filter(g => !newGlitter.includes(g)));
-                }, 2000);
-            };
-
-            // Glitter-Animation
-            useEffect(() => {
-                const interval = setInterval(() => {
-                    setGlitterEffects(prev => 
-                        prev.map(glitter => ({
-                            ...glitter,
-                            x: glitter.x + glitter.vx,
-                            y: glitter.y + glitter.vy,
-                            vy: glitter.vy + 0.1, // Schwerkraft
-                            life: glitter.life - 0.02
-                        })).filter(glitter => glitter.life > 0)
-                    );
-                }, 16);
-                
-                return () => clearInterval(interval);
-            }, []);
-
-            const addHabit = () => {
-                if (!newHabit.name || !newHabit.target || !newHabit.timeframe) return;
-                
-                const habit = {
-                    id: Date.now(),
-                    name: newHabit.name,
-                    target: parseInt(newHabit.target),
-                    current: 0,
-                    timeframe: parseInt(newHabit.timeframe),
-                    unit: newHabit.unit,
-                    startDate: new Date(),
-                    completions: []
-                };
-                
-                setHabits([...habits, habit]);
-                setNewHabit({ name: '', target: '', timeframe: '', unit: 'Tage' });
-                setShowAddForm(false);
-            };
-
-            const markComplete = (habitId) => {
-                const buttonId = `complete-btn-${habitId}`;
-                createGlitterExplosion(buttonId);
-                
-                setHabits(habits.map(habit => 
-                    habit.id === habitId 
-                        ? { 
-                            ...habit, 
-                            current: habit.current + 1,
-                            completions: [...habit.completions, new Date()]
-                        }
-                        : habit
-                ));
-            };
-
-            const removeHabit = (habitId) => {
-                setHabits(habits.filter(habit => habit.id !== habitId));
-            };
-
-            const getDaysRemaining = (startDate, timeframe) => {
-                const start = new Date(startDate);
-                const end = new Date(start.getTime() + timeframe * 24 * 60 * 60 * 1000);
-                const today = new Date();
-                const remaining = Math.ceil((end - today) / (24 * 60 * 60 * 1000));
-                return Math.max(0, remaining);
-            };
-
-            const getProgressPercentage = (current, target) => {
-                return Math.min(100, (current / target) * 100);
-            };
-
-            const getStatusColor = (current, target, daysRemaining, timeframe) => {
-                const progress = current / target;
-                const timeProgress = (timeframe - daysRemaining) / timeframe;
-                
-                if (current >= target) return 'text-green-600';
-                if (progress >= timeProgress) return 'text-blue-600';
-                return 'text-orange-600';
-            };
-
-            return React.createElement('div', {
-                className: "max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen relative"
-            }, [
-                // Glitter-Effekte
-                ...glitterEffects.map(glitter => 
-                    React.createElement('div', {
-                        key: glitter.id,
-                        className: "fixed pointer-events-none z-50",
-                        style: {
-                            left: glitter.x,
-                            top: glitter.y,
-                            width: glitter.size,
-                            height: glitter.size,
-                            backgroundColor: glitter.color,
-                            borderRadius: '50%',
-                            opacity: glitter.life,
-                            transform: 'translate(-50%, -50%)',
-                            boxShadow: `0 0 ${glitter.size}px ${glitter.color}`
-                        }
-                    })
-                ),
-                
-                // Header
-                React.createElement('div', {
-                    key: 'header',
-                    className: "bg-white rounded-lg shadow-md p-6 mb-6"
-                }, [
-                    React.createElement('h1', {
-                        key: 'title',
-                        className: "text-3xl font-bold text-gray-800 mb-2"
-                    }, 'Flexibler Habit Tracker'),
-                    React.createElement('p', {
-                        key: 'subtitle',
-                        className: "text-gray-600"
-                    }, 'Verfolge deine Ziele über flexible Zeiträume - ohne täglichen Druck')
-                ]),
-
-                // Habits Grid
-                React.createElement('div', {
-                    key: 'habits-grid',
-                    className: "grid gap-6"
-                }, [
-                    // Habit Cards
-                    ...habits.map(habit => {
-                        const daysRemaining = getDaysRemaining(habit.startDate, habit.timeframe);
-                        const progressPercentage = getProgressPercentage(habit.current, habit.target);
-                        const statusColor = getStatusColor(habit.current, habit.target, daysRemaining, habit.timeframe);
-                        
-                        return React.createElement('div', {
-                            key: habit.id,
-                            className: "bg-white rounded-lg shadow-md p-6"
-                        }, [
-                            // Habit Header
-                            React.createElement('div', {
-                                key: 'header',
-                                className: "flex justify-between items-start mb-4"
-                            }, [
-                                React.createElement('div', { key: 'info' }, [
-                                    React.createElement('h3', {
-                                        key: 'name',
-                                        className: "text-xl font-semibold text-gray-800"
-                                    }, habit.name),
-                                    React.createElement('p', {
-                                        key: 'progress',
-                                        className: "text-gray-600"
-                                    }, `${habit.current} von ${habit.target} mal in ${habit.timeframe} ${habit.unit}`)
-                                ]),
-                                React.createElement('div', {
-                                    key: 'buttons',
-                                    className: "flex gap-2"
-                                }, [
-                                    React.createElement('button', {
-                                        key: 'complete',
-                                        id: `complete-btn-${habit.id}`,
-                                        onClick: () => markComplete(habit.id),
-                                        className: "flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 active:scale-95",
-                                        disabled: habit.current >= habit.target
-                                    }, [
-                                        React.createElement(CheckCircle2, { key: 'icon', size: 16 }),
-                                        'Erledigt'
-                                    ]),
-                                    React.createElement('button', {
-                                        key: 'delete',
-                                        onClick: () => removeHabit(habit.id),
-                                        className: "p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                    }, React.createElement(Trash2, { size: 16 }))
-                                ])
-                            ]),
-
-                            // Progress Bar
-                            React.createElement('div', {
-                                key: 'progress-section',
-                                className: "mb-4"
-                            }, [
-                                React.createElement('div', {
-                                    key: 'progress-header',
-                                    className: "flex justify-between text-sm text-gray-600 mb-2"
-                                }, [
-                                    React.createElement('span', { key: 'label' }, 'Fortschritt'),
-                                    React.createElement('span', { key: 'percentage' }, `${Math.round(progressPercentage)}%`)
-                                ]),
-                                React.createElement('div', {
-                                    key: 'progress-bar-bg',
-                                    className: "w-full bg-gray-200 rounded-full h-3"
-                                }, React.createElement('div', {
-                                    className: "bg-blue-500 h-3 rounded-full transition-all duration-300",
-                                    style: { width: `${progressPercentage}%` }
-                                }))
-                            ]),
-
-                            // Status Info
-                            React.createElement('div', {
-                                key: 'status',
-                                className: "flex justify-between text-sm"
-                            }, [
-                                React.createElement('div', {
-                                    key: 'time',
-                                    className: "flex items-center gap-2"
-                                }, [
-                                    React.createElement(Calendar, { size: 16, className: "text-gray-500" }),
-                                    React.createElement('span', {
-                                        className: "text-gray-600"
-                                    }, `Noch ${daysRemaining} ${habit.unit === 'Tage' ? 'Tage' : habit.unit} verbleibend`)
-                                ]),
-                                React.createElement('div', {
-                                    key: 'target',
-                                    className: "flex items-center gap-2"
-                                }, [
-                                    React.createElement(Target, { size: 16, className: statusColor }),
-                                    React.createElement('span', {
-                                        className: statusColor + ' font-medium'
-                                    }, habit.current >= habit.target ? 'Ziel erreicht!' : `${habit.target - habit.current} noch zu schaffen`)
-                                ])
-                            ])
-                        ]);
-                    }),
-
-                    // Add Habit Form or Button
-                    showAddForm ? 
-                        React.createElement('div', {
-                            key: 'add-form',
-                            className: "bg-white rounded-lg shadow-md p-6"
-                        }, [
-                            React.createElement('h3', {
-                                key: 'form-title',
-                                className: "text-lg font-semibold mb-4"
-                            }, 'Neues Habit hinzufügen'),
-                            React.createElement('div', {
-                                key: 'form-grid',
-                                className: "grid grid-cols-1 md:grid-cols-2 gap-4"
-                            }, [
-                                React.createElement('input', {
-                                    key: 'name-input',
-                                    type: "text",
-                                    placeholder: "Habit Name (z.B. Kalt duschen)",
-                                    value: newHabit.name,
-                                    onChange: (e) => setNewHabit({...newHabit, name: e.target.value}),
-                                    className: "border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                }),
-                                React.createElement('input', {
-                                    key: 'target-input',
-                                    type: "number",
-                                    placeholder: "Ziel-Anzahl (z.B. 60)",
-                                    value: newHabit.target,
-                                    onChange: (e) => setNewHabit({...newHabit, target: e.target.value}),
-                                    className: "border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                }),
-                                React.createElement('input', {
-                                    key: 'timeframe-input',
-                                    type: "number",
-                                    placeholder: "Zeitraum (z.B. 90)",
-                                    value: newHabit.timeframe,
-                                    onChange: (e) => setNewHabit({...newHabit, timeframe: e.target.value}),
-                                    className: "border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                }),
-                                React.createElement('select', {
-                                    key: 'unit-select',
-                                    value: newHabit.unit,
-                                    onChange: (e) => setNewHabit({...newHabit, unit: e.target.value}),
-                                    className: "border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                }, [
-                                    React.createElement('option', { key: 'days', value: "Tage" }, 'Tage'),
-                                    React.createElement('option', { key: 'weeks', value: "Wochen" }, 'Wochen'),
-                                    React.createElement('option', { key: 'months', value: "Monate" }, 'Monate')
-                                ])
-                            ]),
-                            React.createElement('div', {
-                                key: 'form-buttons',
-                                className: "flex gap-3 mt-4"
-                            }, [
-                                React.createElement('button', {
-                                    key: 'add-btn',
-                                    onClick: addHabit,
-                                    className: "bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-                                }, 'Hinzufügen'),
-                                React.createElement('button', {
-                                    key: 'cancel-btn',
-                                    onClick: () => setShowAddForm(false),
-                                    className: "bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
-                                }, 'Abbrechen')
-                            ])
-                        ]) :
-                        React.createElement('button', {
-                            key: 'add-button',
-                            onClick: () => setShowAddForm(true),
-                            className: "bg-white rounded-lg shadow-md p-6 border-2 border-dashed border-gray-300 hover:border-blue-500 transition-colors text-center"
-                        }, [
-                            React.createElement(Plus, { key: 'plus-icon', size: 24, className: "mx-auto text-gray-400 mb-2" }),
-                            React.createElement('span', {
-                                key: 'add-text',
-                                className: "text-gray-600"
-                            }, 'Neues Habit hinzufügen')
-                        ])
-                ])
-            ]);
+            },
+            glitterEffects: []
         };
 
-        ReactDOM.render(React.createElement(HabitTracker), document.getElementById('root'));
+        // Utility Functions
+        function getDaysRemaining(startDate, timeframe) {
+            const start = new Date(startDate);
+            const end = new Date(start.getTime() + timeframe * 24 * 60 * 60 * 1000);
+            const today = new Date();
+            const remaining = Math.ceil((end - today) / (24 * 60 * 60 * 1000));
+            return Math.max(0, remaining);
+        }
+
+        function getProgressPercentage(current, target) {
+            return Math.min(100, (current / target) * 100);
+        }
+
+        function getStatusColor(current, target, daysRemaining, timeframe) {
+            const progress = current / target;
+            const timeProgress = (timeframe - daysRemaining) / timeframe;
+            
+            if (current >= target) return 'text-green-600';
+            if (progress >= timeProgress) return 'text-blue-600';
+            return 'text-orange-600';
+        }
+
+        // Glitter Effect
+        function createGlitterExplosion(buttonId) {
+            const button = document.getElementById(buttonId);
+            if (!button) return;
+            
+            const rect = button.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            for (let i = 0; i < 20; i++) {
+                const angle = (i / 20) * 2 * Math.PI;
+                const velocity = 2 + Math.random() * 3;
+                const size = 4 + Math.random() * 6;
+                const colors = ['#FFD700', '#FF69B4', '#00CED1', '#FF6347', '#98FB98'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                const particle = document.createElement('div');
+                particle.className = 'glitter-particle';
+                particle.style.left = centerX + 'px';
+                particle.style.top = centerY + 'px';
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.backgroundColor = color;
+                particle.style.boxShadow = `0 0 ${size}px ${color}`;
+                
+                document.body.appendChild(particle);
+                
+                let x = centerX;
+                let y = centerY;
+                let vx = Math.cos(angle) * velocity;
+                let vy = Math.sin(angle) * velocity;
+                let life = 1.0;
+                
+                const animate = () => {
+                    x += vx;
+                    y += vy;
+                    vy += 0.1; // Schwerkraft
+                    life -= 0.02;
+                    
+                    particle.style.left = x + 'px';
+                    particle.style.top = y + 'px';
+                    particle.style.opacity = life;
+                    
+                    if (life > 0) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        document.body.removeChild(particle);
+                    }
+                };
+                
+                requestAnimationFrame(animate);
+            }
+        }
+
+        // Event Handlers
+        function markComplete(habitId) {
+            const buttonId = `complete-btn-${habitId}`;
+            createGlitterExplosion(buttonId);
+            
+            appState.habits = appState.habits.map(habit => 
+                habit.id === habitId 
+                    ? { 
+                        ...habit, 
+                        current: habit.current + 1,
+                        completions: [...habit.completions, new Date()]
+                    }
+                    : habit
+            );
+            render();
+        }
+
+        function removeHabit(habitId) {
+            appState.habits = appState.habits.filter(habit => habit.id !== habitId);
+            render();
+        }
+
+        function addHabit() {
+            if (!appState.newHabit.name || !appState.newHabit.target || !appState.newHabit.timeframe) return;
+            
+            const habit = {
+                id: Date.now(),
+                name: appState.newHabit.name,
+                target: parseInt(appState.newHabit.target),
+                current: 0,
+                timeframe: parseInt(appState.newHabit.timeframe),
+                unit: appState.newHabit.unit,
+                startDate: new Date(),
+                completions: []
+            };
+            
+            appState.habits.push(habit);
+            appState.newHabit = { name: '', target: '', timeframe: '', unit: 'Tage' };
+            appState.showAddForm = false;
+            render();
+        }
+
+        function updateNewHabit(field, value) {
+            appState.newHabit[field] = value;
+            render();
+        }
+
+        function toggleAddForm() {
+            appState.showAddForm = !appState.showAddForm;
+            render();
+        }
+
+        // Render Function
+        function render() {
+            const app = document.getElementById('app');
+            
+            const habitsHtml = appState.habits.map(habit => {
+                const daysRemaining = getDaysRemaining(habit.startDate, habit.timeframe);
+                const progressPercentage = getProgressPercentage(habit.current, habit.target);
+                const statusColor = getStatusColor(habit.current, habit.target, daysRemaining, habit.timeframe);
+                
+                return `
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-xl font-semibold text-gray-800">${habit.name}</h3>
+                                <p class="text-gray-600">${habit.current} von ${habit.target} mal in ${habit.timeframe} ${habit.unit}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button 
+                                    id="complete-btn-${habit.id}"
+                                    onclick="markComplete(${habit.id})"
+                                    class="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 active:scale-95"
+                                    ${habit.current >= habit.target ? 'disabled' : ''}
+                                >
+                                    ${CheckCircle2Icon()}
+                                    Erledigt
+                                </button>
+                                <button 
+                                    onclick="removeHabit(${habit.id})"
+                                    class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                    ${Trash2Icon()}
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm text-gray-600 mb-2">
+                                <span>Fortschritt</span>
+                                <span>${Math.round(progressPercentage)}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div class="bg-blue-500 h-3 rounded-full transition-all duration-300" style="width: ${progressPercentage}%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between text-sm">
+                            <div class="flex items-center gap-2">
+                                ${CalendarIcon()}
+                                <span class="text-gray-600">Noch ${daysRemaining} ${habit.unit === 'Tage' ? 'Tage' : habit.unit} verbleibend</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                ${TargetIcon()}
+                                <span class="${statusColor} font-medium">
+                                    ${habit.current >= habit.target ? 'Ziel erreicht!' : `${habit.target - habit.current} noch zu schaffen`}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const addFormHtml = appState.showAddForm ? `
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">Neues Habit hinzufügen</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input
+                            type="text"
+                            placeholder="Habit Name (z.B. Kalt duschen)"
+                            value="${appState.newHabit.name}"
+                            onchange="updateNewHabit('name', this.value)"
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                        <input
+                            type="number"
+                            placeholder="Ziel-Anzahl (z.B. 60)"
+                            value="${appState.newHabit.target}"
+                            onchange="updateNewHabit('target', this.value)"
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                        <input
+                            type="number"
+                            placeholder="Zeitraum (z.B. 90)"
+                            value="${appState.newHabit.timeframe}"
+                            onchange="updateNewHabit('timeframe', this.value)"
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                        <select
+                            value="${appState.newHabit.unit}"
+                            onchange="updateNewHabit('unit', this.value)"
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="Tage">Tage</option>
+                            <option value="Wochen">Wochen</option>
+                            <option value="Monate">Monate</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-3 mt-4">
+                        <button onclick="addHabit()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
+                            Hinzufügen
+                        </button>
+                        <button onclick="toggleAddForm()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                            Abbrechen
+                        </button>
+                    </div>
+                </div>
+            ` : `
+                <button onclick="toggleAddForm()" class="bg-white rounded-lg shadow-md p-6 border-2 border-dashed border-gray-300 hover:border-blue-500 transition-colors text-center w-full">
+                    ${PlusIcon()}
+                    <span class="text-gray-600 ml-2">Neues Habit hinzufügen</span>
+                </button>
+            `;
+
+            app.innerHTML = `
+                <div class="max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen">
+                    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <h1 class="text-3xl font-bold text-gray-800 mb-2">Flexibler Habit Tracker</h1>
+                        <p class="text-gray-600">Verfolge deine Ziele über flexible Zeiträume - ohne täglichen Druck</p>
+                    </div>
+                    
+                    <div class="grid gap-6">
+                        ${habitsHtml}
+                        ${addFormHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Initial render
+        render();
     </script>
 </body>
 </html>
