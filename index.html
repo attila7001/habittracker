@@ -1,26 +1,5 @@
-// Click outside to close settings menu
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showSettingsMenu && !event.target.closest('.relative')) {
-        setShowSettingsMenu(false);
-      }
-    };
-    
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [showSettingsMenu]);  // Motivations-Zitate
-  const motivationQuotes = [
-    "Jeder kleine Schritt zählt! 💪",
-    "Du bist stärker als deine Ausreden! 🔥",
-    "Heute ist ein guter Tag für Fortschritt! ⭐",
-    "Dranbleiben macht den Unterschied! 🎯",
-    "Du schaffst das! 🚀"
-  ];
-
-  const getRandomQuote = () => {
-    return motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
-  };import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Target, Calendar, Trash2, CheckCircle2, Download, Upload, Camera, Award, Star, Flame, TrendingUp, RotateCcw, Settings, Edit2, Check, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Target, Calendar, Trash2, CheckCircle2, Download, Upload, Camera, Award, Star, Flame, TrendingUp, RotateCcw, Settings, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 const HabitTracker = () => {
   const [habits, setHabits] = useState([]);
@@ -34,23 +13,16 @@ const HabitTracker = () => {
   });
   const [glitterEffects, setGlitterEffects] = useState([]);
   const [achievements, setAchievements] = useState([]);
+  const [hiddenAchievements, setHiddenAchievements] = useState(new Set());
   const [showStats, setShowStats] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [tempTitle, setTempTitle] = useState('Flexibler Habit Tracker');
-  const [appTitle, setAppTitle] = useState('Flexibler Habit Tracker');
   const screenshotRef = useRef(null);
 
   // Daten aus localStorage laden
   useEffect(() => {
     const savedHabits = localStorage.getItem('flexibler-habit-tracker-habits');
     const savedAchievements = localStorage.getItem('flexibler-habit-tracker-achievements');
-    const savedTitle = localStorage.getItem('flexibler-habit-tracker-title');
-    
-    if (savedTitle) {
-      setAppTitle(savedTitle);
-      setTempTitle(savedTitle);
-    }
     
     if (savedHabits) {
       const parsedHabits = JSON.parse(savedHabits);
@@ -95,12 +67,13 @@ const HabitTracker = () => {
     if (savedAchievements) {
       setAchievements(JSON.parse(savedAchievements));
     }
-  }, []);
 
-  // Titel speichern
-  useEffect(() => {
-    localStorage.setItem('flexibler-habit-tracker-title', appTitle);
-  }, [appTitle]);
+    // Versteckte Achievements laden
+    const savedHiddenAchievements = localStorage.getItem('flexibler-habit-tracker-hidden-achievements');
+    if (savedHiddenAchievements) {
+      setHiddenAchievements(new Set(JSON.parse(savedHiddenAchievements)));
+    }
+  }, []);
 
   // Daten in localStorage speichern
   useEffect(() => {
@@ -114,6 +87,23 @@ const HabitTracker = () => {
       localStorage.setItem('flexibler-habit-tracker-achievements', JSON.stringify(achievements));
     }
   }, [achievements]);
+
+  // Versteckte Achievements speichern
+  useEffect(() => {
+    localStorage.setItem('flexibler-habit-tracker-hidden-achievements', JSON.stringify([...hiddenAchievements]));
+  }, [hiddenAchievements]);
+
+  // Settings-Menü schließen bei Click außerhalb
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showSettingsMenu && !event.target.closest('.settings-menu')) {
+        setShowSettingsMenu(false);
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showSettingsMenu]);
 
   // Glitter-Effekt generieren
   const createGlitterExplosion = (buttonId, type = 'normal') => {
@@ -235,8 +225,8 @@ const HabitTracker = () => {
   };
 
   // Streak berechnen
-  const getCurrentStreak = (completions = []) => {
-    if (!completions || completions.length === 0) return 0;
+  const getCurrentStreak = (completions) => {
+    if (completions.length === 0) return 0;
     
     const today = new Date();
     const sortedCompletions = [...completions].sort((a, b) => new Date(b) - new Date(a));
@@ -318,10 +308,11 @@ const HabitTracker = () => {
     a.download = `habit-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    setShowSettingsMenu(false);
   };
 
   const importData = (event) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files[0];
     if (!file) return;
     
     const reader = new FileReader();
@@ -332,7 +323,7 @@ const HabitTracker = () => {
           const habitsWithDates = data.habits.map(habit => ({
             ...habit,
             startDate: new Date(habit.startDate),
-            completions: habit.completions ? habit.completions.map(comp => new Date(comp)) : []
+            completions: habit.completions.map(comp => new Date(comp))
           }));
           setHabits(habitsWithDates);
         }
@@ -345,45 +336,33 @@ const HabitTracker = () => {
       }
     };
     reader.readAsText(file);
+    setShowSettingsMenu(false);
   };
 
   const clearAllData = () => {
     if (confirm('Wirklich alle Daten löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
       localStorage.removeItem('flexibler-habit-tracker-habits');
       localStorage.removeItem('flexibler-habit-tracker-achievements');
-      localStorage.removeItem('flexibler-habit-tracker-title');
+      localStorage.removeItem('flexibler-habit-tracker-hidden-achievements');
       setHabits([]);
       setAchievements([]);
-      setAppTitle('Flexibler Habit Tracker');
-      setTempTitle('Flexibler Habit Tracker');
+      setHiddenAchievements(new Set());
       setShowSettingsMenu(false);
     }
   };
 
-  // Titel-Bearbeitung
-  const startEditingTitle = () => {
-    setEditingTitle(true);
-    setTempTitle(appTitle);
+  // Achievement ausblenden
+  const hideAchievement = (achievementId) => {
+    setHiddenAchievements(prev => new Set([...prev, achievementId]));
   };
 
-  const saveTitle = () => {
-    setAppTitle(tempTitle);
-    setEditingTitle(false);
-  };
-
-  const cancelEditTitle = () => {
-    setTempTitle(appTitle);
-    setEditingTitle(false);
-  };
+  // Sichtbare Achievements zählen
+  const visibleAchievements = achievements.filter(achievement => !hiddenAchievements.has(achievement.id));
 
   // Screenshot-Funktion
-  const takeScreenshot = async () => {
-    try {
-      // Fallback: einfache Benachrichtigung
-      alert('Screenshot-Feature: Nutze die Screenshot-Funktion deines Geräts (iPhone: Home + Power Button)');
-    } catch (error) {
-      alert('Screenshot-Feature ist in dieser Umgebung nicht verfügbar. Nutze die Screenshot-Funktion deines Geräts.');
-    }
+  const takeScreenshot = () => {
+    alert('Screenshot-Tipp: Nutze die Screenshot-Funktion deines iPhones (Home + Power Button oder Seitentaste + Lautstärke)');
+    setShowSettingsMenu(false);
   };
 
   const getDaysRemaining = (startDate, timeframe) => {
@@ -423,19 +402,6 @@ const HabitTracker = () => {
     }
   };
 
-  // Motivations-Zitate
-  const motivationQuotes = [
-    "Jeder kleine Schritt zählt! 💪",
-    "Du bist stärker als deine Ausreden! 🔥",
-    "Heute ist ein guter Tag für Fortschritt! ⭐",
-    "Dranbleiben macht den Unterschied! 🎯",
-    "Du schaffst das! 🚀"
-  ];
-
-  const getRandomQuote = () => {
-    return motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
-  };
-
   return (
     <div className="max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen relative">
       {/* Glitter-Effekte */}
@@ -465,66 +431,105 @@ const HabitTracker = () => {
               <h1 className="text-3xl font-bold text-gray-800 mb-2">Flexibler Habit Tracker</h1>
               <p className="text-gray-600">Verfolge deine Ziele über flexible Zeiträume - ohne täglichen Druck</p>
             </div>
-            <div className="flex gap-2 flex-wrap">
+            
+            <div className="relative settings-menu">
               <button
-                onClick={exportData}
-                className="flex items-center gap-2 bg-green-500 text-white px-3 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm"
+                onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                className="p-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <Download size={16} />
-                Export
+                <Settings size={24} />
               </button>
-              <label className="flex items-center gap-2 bg-blue-500 text-white px-3 py-2 rounded-lg hover:bg-blue-600 transition-colors cursor-pointer text-sm">
-                <Upload size={16} />
-                Import
-                <input type="file" accept=".json" onChange={importData} className="hidden" />
-              </label>
-              <button
-                onClick={takeScreenshot}
-                className="flex items-center gap-2 bg-purple-500 text-white px-3 py-2 rounded-lg hover:bg-purple-600 transition-colors text-sm"
-              >
-                <Camera size={16} />
-                Screenshot
-              </button>
-              <button
-                onClick={() => setShowStats(!showStats)}
-                className="flex items-center gap-2 bg-indigo-500 text-white px-3 py-2 rounded-lg hover:bg-indigo-600 transition-colors text-sm"
-              >
-                <TrendingUp size={16} />
-                Stats
-              </button>
-              <button
-                onClick={clearAllData}
-                className="flex items-center gap-2 bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm"
-              >
-                <RotateCcw size={16} />
-                Reset
-              </button>
+              
+              {showSettingsMenu && (
+                <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 min-w-48">
+                  <button
+                    onClick={() => {
+                      setShowStats(!showStats);
+                      setShowSettingsMenu(false);
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <TrendingUp size={16} className="text-indigo-500" />
+                    <span>Statistiken {showStats ? 'ausblenden' : 'anzeigen'}</span>
+                  </button>
+                  
+                  <div className="border-t border-gray-100 my-2"></div>
+                  
+                  <button
+                    onClick={exportData}
+                    className="flex items-center gap-3 w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <Download size={16} className="text-green-500" />
+                    <span>Daten exportieren</span>
+                  </button>
+                  
+                  <label className="flex items-center gap-3 w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors cursor-pointer">
+                    <Upload size={16} className="text-blue-500" />
+                    <span>Daten importieren</span>
+                    <input type="file" accept=".json" onChange={importData} className="hidden" />
+                  </label>
+                  
+                  <button
+                    onClick={takeScreenshot}
+                    className="flex items-center gap-3 w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <Camera size={16} className="text-purple-500" />
+                    <span>Screenshot erstellen</span>
+                  </button>
+                  
+                  <div className="border-t border-gray-100 my-2"></div>
+                  
+                  <button
+                    onClick={clearAllData}
+                    className="flex items-center gap-3 w-full px-4 py-2 text-left hover:bg-red-50 transition-colors text-red-600"
+                  >
+                    <RotateCcw size={16} />
+                    <span>Alle Daten löschen</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-          
-
         </div>
 
-        {/* Achievements */}
-        {achievements.length > 0 && (
+        {/* Erfolge */}
+        {visibleAchievements.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Award className="text-yellow-500" size={24} />
-              Achievements
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {achievements.slice(-6).map(achievement => (
-                <div key={achievement.id} className="bg-gradient-to-r from-yellow-100 to-orange-100 p-3 rounded-lg border border-yellow-200">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{achievement.icon}</span>
-                    <div>
-                      <p className="font-semibold text-gray-800 text-sm">{achievement.title}</p>
-                      <p className="text-gray-600 text-xs">{achievement.description}</p>
+            <button
+              onClick={() => setShowAchievements(!showAchievements)}
+              className="flex items-center justify-between w-full text-left hover:bg-gray-50 -m-6 p-6 rounded-lg transition-colors"
+            >
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <Award className="text-yellow-500" size={24} />
+                Erfolge ({visibleAchievements.length})
+              </h2>
+              {showAchievements ? 
+                <ChevronUp className="text-gray-400" size={20} /> : 
+                <ChevronDown className="text-gray-400" size={20} />
+              }
+            </button>
+            
+            {showAchievements && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+                {visibleAchievements.slice(-6).map(achievement => (
+                  <div key={achievement.id} className="bg-gradient-to-r from-yellow-100 to-orange-100 p-3 rounded-lg border border-yellow-200 relative group">
+                    <button
+                      onClick={() => hideAchievement(achievement.id)}
+                      className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 hover:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={14} />
+                    </button>
+                    <div className="flex items-center gap-2 pr-6">
+                      <span className="text-2xl">{achievement.icon}</span>
+                      <div>
+                        <p className="font-semibold text-gray-800 text-sm">{achievement.title}</p>
+                        <p className="text-gray-600 text-xs">{achievement.description}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
